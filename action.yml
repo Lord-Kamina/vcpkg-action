@@ -21,6 +21,9 @@ inputs:
     description: "vcpkg revision to checkout."
     required: false
     default: ''
+  api-token:
+    description: "Optional access token to update cache contents."
+    required: false
 runs:
   using: "composite"
   steps:
@@ -72,7 +75,7 @@ runs:
     shell: cmd
     run: |
       mkdir ${{ github.workspace }}\vcpkg_cache
-      "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="files,${{ github.workspace }}\vcpkg_cache,readwrite" --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} > vcpkg_dry_run.txt
+      "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} > vcpkg_dry_run.txt
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: vcpkg-dry-run-unix
@@ -81,24 +84,26 @@ runs:
     shell: bash
     run: |
       mkdir ${{ github.workspace }}/vcpkg_cache
-      "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="files,${{ github.workspace }}/vcpkg_cache,readwrite" --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} > vcpkg_dry_run.txt
+      "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} > vcpkg_dry_run.txt
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: cache-vcpkg-archives
     if: ${{ inputs.disable_cache != 'true' }}
     id: cache-vcpkg-archives
-    uses: pat-s/always-upload-cache@v3
+    uses: Lord-Kamina/always-upload-cache@allow-refresh
     with:
       path: ${{ github.workspace }}/vcpkg_cache
       key: ${{ runner.os }}-${{ inputs.triplet }}-vcpkg-${{ hashFiles('vcpkg/vcpkg_dry_run.txt') }}
+      refresh-cache: 'true'
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
+      GITHUB_TOKEN: "${{ inputs.api-token }}"
   - name: build-vcpkg-win
     if: runner.os == 'Windows'
     shell: cmd
     working-directory: ${{ github.workspace }}\vcpkg
     run: |
-      "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="files,${{ github.workspace }}\vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
+      "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: build-vcpkg-unix
@@ -106,6 +111,6 @@ runs:
     shell: bash
     working-directory: ${{ github.workspace }}/vcpkg
     run: |
-      "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="files,${{ github.workspace }}/vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
+      "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
