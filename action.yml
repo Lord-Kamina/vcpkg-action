@@ -17,6 +17,10 @@ inputs:
     description: "Disable cache (useful for release builds)"
     required: false
     default: 'false'
+  debug:
+    description: "Enable debug output."
+    required: false
+    default: 'false'
   revision:
     description: "vcpkg revision to checkout."
     required: false
@@ -76,6 +80,8 @@ runs:
     run: |
       mkdir ${{ github.workspace }}\vcpkg_cache
       "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} > vcpkg_dry_run.txt
+
+      if ${{ inputs.debug }}==true "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --debug --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: vcpkg-dry-run-unix
@@ -85,6 +91,11 @@ runs:
     run: |
       mkdir ${{ github.workspace }}/vcpkg_cache
       "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} > vcpkg_dry_run.txt
+
+      if [[ ${{ inputs.debug }} == "true" ]]; then
+      "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" --debug --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
+      fi
+
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: cache-vcpkg-archives
@@ -103,7 +114,7 @@ runs:
     shell: cmd
     working-directory: ${{ github.workspace }}\vcpkg
     run: |
-      "${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
+      IF ${{ inputs.debug }}==true ("${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --debug --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}) ELSE ("${{ github.workspace }}/vcpkg/vcpkg.exe" install --binarysource="clear;files,${{ github.workspace }}\vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }})
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: build-vcpkg-unix
@@ -111,6 +122,10 @@ runs:
     shell: bash
     working-directory: ${{ github.workspace }}/vcpkg
     run: |
+      if [[ ${{ inputs.debug }} == "true" ]]; then
+      "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" --debug --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
+      else 
       "${{ github.workspace }}/vcpkg/vcpkg" install --binarysource="clear;files,${{ github.workspace }}/vcpkg_cache,readwrite" --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }}
+      fi
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
