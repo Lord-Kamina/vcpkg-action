@@ -32,11 +32,12 @@ runs:
   using: "composite"
   steps:
   - name: Get latest Github release
-    uses: pozetroninc/github-action-get-latest-release@v0.6.0
+    uses: performous/github-action-get-latest-release@v0.7.0
     id: get-latest-vcpkg-release
     with:
       repository: microsoft/vcpkg
       excludes: prerelease, draft
+      token: ${{ github.token }}
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: Determine checkout tag
