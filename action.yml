@@ -45,9 +45,9 @@ runs:
     id: determine-checkout-revision
     run: |
       if [[ "${{ inputs.revision }}" != "" ]]; then
-        echo "::set-output name=vcpkg-revision::${{ inputs.revision }}"
+        echo "vcpkg-revision=${{ inputs.revision }}" >> $GITHUB_OUTPUT
       else
-        echo "::set-output name=vcpkg-revision::${{ steps.get-latest-vcpkg-release.outputs.release }}"
+        echo "vcpkg-revision=${{ steps.get-latest-vcpkg-release.outputs.release }}" >> $GITHUB_OUTPUT
       fi
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
@@ -99,10 +99,10 @@ runs:
 
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
-  - name: cache-vcpkg-archives
-    if: ${{ inputs.disable_cache != 'true' }}
-    id: cache-vcpkg-archives
-    uses: Lord-Kamina/always-upload-cache@allow-refresh
+  - name: get-cached-vcpkg-archives
+    if: ${{ inputs.disable-cache != 'true' }}
+    id: get-cached-vcpkg-archives
+    uses: Lord-Kamina/always-upload-cache/restore@refresh-cache
     with:
       path: ${{ github.workspace }}/vcpkg_cache
       key: ${{ runner.os }}-${{ inputs.triplet }}-vcpkg-${{ hashFiles('vcpkg/vcpkg_dry_run.txt') }}
@@ -111,6 +111,7 @@ runs:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
       GITHUB_TOKEN: "${{ inputs.api-token }}"
   - name: build-vcpkg-win
+    id: build-vcpkg-win
     if: runner.os == 'Windows'
     shell: cmd
     working-directory: ${{ github.workspace }}\vcpkg
@@ -119,6 +120,7 @@ runs:
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
   - name: build-vcpkg-unix
+    id: build-vcpkg-unix
     if: runner.os != 'Windows'
     shell: bash
     working-directory: ${{ github.workspace }}/vcpkg
@@ -130,3 +132,14 @@ runs:
       fi
     env:
       VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
+  - name: save-vcpkg-archives-cache
+    id: save-vcpkg-archives-cache
+    if: ${{ ( inputs.disable-cache != 'true' && ( steps.build-vcpkg-unix.outcome == 'success' || steps.build-vcpkg-win.outcome == 'success' ) )}}
+    uses: Lord-Kamina/always-upload-cache/save@refresh-cache
+    with:
+      path: ${{ github.workspace }}/vcpkg_cache
+      key: ${{ runner.os }}-${{ inputs.triplet }}-vcpkg-${{ hashFiles('vcpkg/vcpkg_dry_run.txt') }}
+      refresh-cache: 'true'
+    env:
+      VCPKG_ROOT: "${{ github.workspace }}/vcpkg"
+      GITHUB_TOKEN: "${{ inputs.api-token }}"
