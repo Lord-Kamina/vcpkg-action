@@ -18,6 +18,10 @@ inputs:
     description: "Disable cache (useful for release builds)"
     required: false
     default: 'false'
+  debug:
+    description: "Enable debug output."
+    required: false
+    default: 'false'
   revision:
     description: "vcpkg revision to checkout."
     required: false
@@ -98,6 +102,14 @@ runs:
     shell: bash
     env:
       VCPKG_ROOT: "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}"
+  - name: configure-debug-env
+    shell: bash
+    run: |
+      if [[ "${{ inputs.debug }}" == "true" ]]; then
+        echo VCPKG_DEBUG_CONFIG='--debug --debug-env' >> $GITHUB_ENV
+      else
+        echo VCPKG_DEBUG_CONFIG='' >> $GITHUB_ENV
+      fi
   - name: set-binarycache-variable
     shell: bash
     run: |
@@ -108,7 +120,7 @@ runs:
     working-directory: ${{ github.workspace }}\${{ inputs.vcpkg-subdir }}
     shell: powershell
     run: |
-      & "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/vcpkg.exe" install --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} --x-write-nuget-packages-config=vcpkg_dry_run.txt
+      & "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/vcpkg.exe" install --dry-run --triplet ${{ inputs.triplet }} ${{ env.VCPKG_DEBUG_CONFIG }} ${{ inputs.extra-args }} ${{ inputs.pkgs }} --x-write-nuget-packages-config=vcpkg_dry_run.txt
     env:
       VCPKG_ROOT: "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}"
   - name: vcpkg-dry-run-unix
@@ -132,7 +144,7 @@ runs:
     working-directory: ${{ github.workspace }}/${{ inputs.vcpkg-subdir }}
     shell: bash
     run: |
-      "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/vcpkg" install --dry-run --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} --x-manifest-root=${{ inputs.manifest-dir }} --x-install-root=${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/installed --x-write-nuget-packages-config=vcpkg_dry_run.txt
+      "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/vcpkg" install --dry-run --triplet ${{ inputs.triplet }} ${{ env.VCPKG_DEBUG_CONFIG }} ${{ inputs.extra-args }} --x-manifest-root=${{ inputs.manifest-dir }} --x-install-root=${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/installed --x-write-nuget-packages-config=vcpkg_dry_run.txt
     env:
       VCPKG_ROOT: "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}"
   - name: cache-vcpkg-archives-restore
@@ -173,7 +185,7 @@ runs:
     shell: bash
     working-directory: ${{ github.workspace }}/${{ inputs.vcpkg-subdir }}
     run: |
-      "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/vcpkg" install --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} --x-manifest-root=${{ inputs.manifest-dir }} --x-install-root=${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/installed
+      "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/vcpkg" install --triplet ${{ inputs.triplet }} ${{ inputs.extra-args }} ${{ env.VCPKG_DEBUG_CONFIG }} --x-manifest-root=${{ inputs.manifest-dir }} --x-install-root=${{ github.workspace }}/${{ inputs.vcpkg-subdir }}/installed
     env:
       VCPKG_ROOT: "${{ github.workspace }}/${{ inputs.vcpkg-subdir }}"
   - name: vcpkg cmake configure 
